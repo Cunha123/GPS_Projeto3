@@ -261,3 +261,44 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════ MODAL: ADICIONAR SESSÃO (US05) ═══════════════════════════ -->
+<div class="modal-overlay hidden" id="modalSession">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Adicionar sessão</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalSession')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="sessionAlert" class="hidden"></div>
+      <div class="field">
+        <label>Título da sessão *</label>
+        <input type="text" id="sesTitle" placeholder="Ex: Keynote de abertura">
+      </div>
+      <div class="field">
+        <label>Orador</label>
+        <input type="text" id="sesSpeaker" placeholder="Nome do orador">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Início *</label>
+          <input type="time" id="sesStart">
+        </div>
+        <div class="field">
+          <label>Fim *</label>
+          <input type="time" id="sesEnd">
+        </div>
+      </div>
+      <div id="overlapWarning" class="alert alert-warning hidden">
+        ⚠️ Esta sessão sobrepõe-se com outra já existente.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalSession')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSession()">Adicionar sessão</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
