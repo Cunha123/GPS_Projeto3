@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EventFlow — Plataforma de Eventos</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -122,6 +124,10 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Agenda global
       </button>
+      <button class="nav-item" onclick="switchTab('oradores')" id="tab-oradores">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 14c3 0 5-2 5-5s-2-5-5-5-5 2-5 5 2 5 5 5Z"/><path d="M4 21c1.5-3 4-4 8-4s6.5 1 8 4"/></svg>
+        Oradores
+      </button>
       <div class="sidebar-label">Conta</div>
       <button class="nav-item" onclick="switchTab('perfil')" id="tab-perfil">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -178,6 +184,24 @@
         </div>
       </div>
 
+      <!-- TAB: ORADORES (US06) -->
+      <div id="view-oradores" class="hidden fade-in">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Oradores</h2>
+            <p class="section-sub">Perfis públicos disponíveis para associar a sessões</p>
+          </div>
+          <button class="btn btn-primary" onclick="openSpeakerModal()">+ Orador</button>
+        </div>
+        <div id="speakersGrid" class="speakers-grid"></div>
+        <div id="emptySpeakers" class="empty-state hidden">
+          <div class="empty-icon">🎤</div>
+          <h3>Sem oradores</h3>
+          <p>Registe oradores para os associar às sessões dos eventos.</p>
+          <button class="btn btn-primary" style="margin-top:1rem" onclick="openSpeakerModal()">+ Orador</button>
+        </div>
+      </div>
+
       <!-- TAB: PERFIL -->
       <div id="view-perfil" class="hidden fade-in">
         <div class="section-header">
@@ -212,6 +236,7 @@
     </div>
     <div class="modal-body">
       <div id="eventFormAlert" class="hidden"></div>
+
       <div class="field">
         <label>Título do evento *</label>
         <input type="text" id="evTitle" placeholder="Ex: Conferência de Tecnologia 2025">
@@ -226,32 +251,56 @@
           <input type="time" id="evTime">
         </div>
       </div>
-      <div class="field">
-        <label>Local *</label>
-        <input type="text" id="evLocal" placeholder="Ex: Lisboa, Portugal">
+
+      <div class="field" id="fieldLocal">
+        <label id="labelLocal">Local *</label>
+        <div id="mapPickerWrap">
+          <div class="map-search-bar">
+            <input type="text" id="mapSearch" placeholder="Pesquisar local..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapLocation();}">
+            <button type="button" onclick="searchMapLocation()">🔍 Pesquisar</button>
+          </div>
+          <div id="mapContainer"></div>
+          <div id="mapSelectedLabel"></div>
+          <input type="hidden" id="evLocal">
+          <input type="hidden" id="evLat">
+          <input type="hidden" id="evLng">
+        </div>
+        <input type="url" id="evLocalLink" class="hidden" placeholder="Ex: https://meet.google.com/abc-xyz">
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Formato *</label>
-          <select id="evFormat">
-            <option value="presencial">Presencial</option>
-            <option value="online">Online</option>
-            <option value="híbrido">Híbrido</option>
-          </select>
+
+      <div class="field hidden" id="fieldHybridLink">
+        <label>Link da reunião online *</label>
+        <input type="url" id="evHybridLink" placeholder="Ex: https://meet.google.com/abc-xyz">
+      </div>
+
+      <div class="form-section">
+        <div class="field-row">
+          <div class="field">
+            <label>Formato *</label>
+            <select id="evFormat" onchange="updateLocalField()">
+              <option value="presencial">Presencial</option>
+              <option value="online">Online</option>
+              <option value="híbrido">Híbrido</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Estado</label>
+            <select id="evStatus">
+              <option value="planeado">Planeado</option>
+              <option value="ativo">Ativo</option>
+              <option value="cancelado">Cancelado</option>
+              <option value="concluido">Concluído</option>
+            </select>
+          </div>
         </div>
         <div class="field">
-          <label>Estado</label>
-          <select id="evStatus">
-            <option value="planeado">Planeado</option>
-            <option value="ativo">Ativo</option>
-            <option value="cancelado">Cancelado</option>
-            <option value="concluido">Concluído</option>
-          </select>
+          <label>Descrição</label>
+          <textarea id="evDesc" placeholder="Descreva o seu evento..."></textarea>
         </div>
-      </div>
-      <div class="field">
-        <label>Descrição</label>
-        <textarea id="evDesc" placeholder="Descreva o seu evento..."></textarea>
+        <div class="field">
+          <label>Capacidade máxima</label>
+          <input type="number" id="evCapacity" min="1" placeholder="Ex: 120">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -276,7 +325,7 @@
       </div>
       <div class="field">
         <label>Orador</label>
-        <input type="text" id="sesSpeaker" placeholder="Nome do orador">
+        <select id="sesSpeaker"></select>
       </div>
       <div class="field-row">
         <div class="field">
@@ -295,6 +344,43 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalSession')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveSession()">Adicionar sessão</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MODAL: ORADOR (US06) ═══════════════════════════ -->
+<div class="modal-overlay hidden" id="modalSpeaker">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalSpeakerTitle">Registar orador</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalSpeaker')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="speakerAlert" class="hidden"></div>
+      <div class="field">
+        <label>Nome completo *</label>
+        <input type="text" id="spName" placeholder="Ex: Ana Martins">
+      </div>
+      <div class="field">
+        <label>Fotografia</label>
+        <input type="url" id="spPhoto" placeholder="URL da fotografia">
+      </div>
+      <div class="field">
+        <label>Área de especialização *</label>
+        <input type="text" id="spArea" placeholder="Ex: Inteligência Artificial">
+      </div>
+      <div class="field">
+        <label>Contacto</label>
+        <input type="email" id="spContact" placeholder="ana@exemplo.pt">
+      </div>
+      <div class="field">
+        <label>Biografia *</label>
+        <textarea id="spBio" placeholder="Resumo do percurso profissional..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalSpeaker')">Cancelar</button>
+      <button class="btn btn-primary" id="speakerSaveBtn" onclick="saveSpeaker()">Guardar orador</button>
     </div>
   </div>
 </div>
