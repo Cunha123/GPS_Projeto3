@@ -967,6 +967,149 @@ function toggleCheckIn(id) {
   renderDetailView(ev);
 }
 
+/* ══════════════════════════════════════════════
+   US09 — SISTEMA DE FEEDBACK
+══════════════════════════════════════════════ */
+function feedbackSummary(sessions) {
+  if (!sessions.length) return '<p class="muted-small">Adicione sessões para recolher feedback.</p>';
+  return sessions.map(s => {
+    const feedback = s.feedback || [];
+    const avg = feedback.length
+      ? (feedback.reduce((sum, f) => sum + Number(f.rating), 0) / feedback.length).toFixed(1)
+      : '—';
+    return `<div class="metric-row"><strong>${s.title}</strong><span>${avg} ★ (${feedback.length})</span></div>`;
+  }).join('');
+}
+
+function submitFeedback() {
+  const ev = currentEvent();
+  const session = (ev.sessions || []).find(s => s.id === document.getElementById('feedbackSession').value);
+  if (!session) return alert('Selecione uma sessão.');
+  session.feedback = session.feedback || [];
+  session.feedback.push({
+    rating: Number(document.getElementById('feedbackRating').value),
+    comment: document.getElementById('feedbackComment').value.trim(),
+    at: new Date().toLocaleString('pt-PT')
+  });
+  save();
+  renderDetailView(ev);
+}
+
+/* ══════════════════════════════════════════════
+   US10 — Q&A EM SESSÕES
+══════════════════════════════════════════════ */
+function questionsList(sessions) {
+  const rows = sessions.flatMap(s => (s.questions || []).map(q => ({ ...q, sessionTitle: s.title, sessionId: s.id })));
+  if (!rows.length) return '<p class="muted-small">Ainda não existem perguntas.</p>';
+
+  return rows.map(q => `
+    <div class="qa-row ${q.hidden ? 'is-hidden' : ''}">
+      <div>
+        <strong>${q.sessionTitle}</strong>
+        <p>${q.text}</p>
+        <span>${q.answered ? 'Respondida' : 'Por responder'} · ${q.votes || 0} voto(s)</span>
+      </div>
+      <div class="qa-actions">
+        <button class="btn btn-outline btn-sm" onclick="voteQuestion('${q.sessionId}', '${q.id}')">Votar</button>
+        <button class="btn btn-outline btn-sm" onclick="markAnswered('${q.sessionId}', '${q.id}')">Responder</button>
+        <button class="btn btn-outline btn-sm" onclick="hideQuestion('${q.sessionId}', '${q.id}')">Ocultar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function submitQuestion() {
+  const ev = currentEvent();
+  const session = (ev.sessions || []).find(s => s.id === document.getElementById('qaSession').value);
+  const text = document.getElementById('qaQuestion').value.trim();
+  if (!session || !text) return alert('Selecione uma sessão e escreva a pergunta.');
+  session.questions = session.questions || [];
+  session.questions.push({
+    id: 'q_' + Date.now(),
+    text,
+    votes: 0,
+    answered: false,
+    hidden: false,
+    at: new Date().toLocaleString('pt-PT')
+  });
+  save();
+  renderDetailView(ev);
+}
+
+function findQuestion(sessionId, questionId) {
+  const ev = currentEvent();
+  const session = (ev.sessions || []).find(s => s.id === sessionId);
+  const question = session ? (session.questions || []).find(q => q.id === questionId) : null;
+  return { ev, question };
+}
+
+function voteQuestion(sessionId, questionId) {
+  const { ev, question } = findQuestion(sessionId, questionId);
+  if (!question) return;
+  question.votes = (question.votes || 0) + 1;
+  save();
+  renderDetailView(ev);
+}
+
+function markAnswered(sessionId, questionId) {
+  const { ev, question } = findQuestion(sessionId, questionId);
+  if (!question) return;
+  question.answered = !question.answered;
+  save();
+  renderDetailView(ev);
+}
+
+function hideQuestion(sessionId, questionId) {
+  const { ev, question } = findQuestion(sessionId, questionId);
+  if (!question) return;
+  question.hidden = !question.hidden;
+  save();
+  renderDetailView(ev);
+}
+
+/* ══════════════════════════════════════════════
+   GLOBAL AGENDA
+══════════════════════════════════════════════ */
+function renderGlobalAgenda() {
+  const all = myEvents()
+    .flatMap(ev => (ev.sessions || []).map(s => ({
+      ...s,
+      eventTitle: ev.title,
+      eventDate:  ev.date
+    })))
+    .sort((a, b) => {
+      if (a.eventDate !== b.eventDate)
+        return (a.eventDate || '').localeCompare(b.eventDate || '');
+      return a.start.localeCompare(b.start);
+    });
+
+  const el = document.getElementById('globalAgenda');
+  const em = document.getElementById('emptyAgenda');
+
+  if (!all.length) {
+    el.innerHTML = '';
+    em.classList.remove('hidden');
+    return;
+  }
+
+  em.classList.add('hidden');
+  el.innerHTML = all.map(s => `
+    <div class="session-card">
+      <div class="session-time">
+        ${s.start}<br>
+        <small style="color:var(--muted);font-size:.7rem">${s.end}</small>
+      </div>
+      <div class="session-info">
+        <div class="session-title">${s.title}</div>
+        <div class="session-speaker">
+          ${s.speaker ? '🎤 ' + speakerName(s.speaker) + ' · ' : ''}
+          <span style="color:var(--accent)">${s.eventTitle}</span>
+          ${s.eventDate ? ' · ' + s.eventDate : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
 
 /* ══════════════════════════════════════════════
    PROFILE
