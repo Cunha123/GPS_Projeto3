@@ -919,50 +919,54 @@ function deleteSpeaker(id) {
   }
 }
 
+/* ══════════════════════════════════════════════
+   US07 — INSCRIÇÃO EM EVENTOS
+══════════════════════════════════════════════ */
+function sessionOptions(sessions) {
+  if (!sessions.length) return '<option value="">Sem sessões disponíveis</option>';
+  return sessions.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+}
+
+function currentEvent() {
+  return events.find(e => e.id === currentEventId);
+}
+
+function registerParticipant() {
+  const ev = currentEvent();
+  const name = document.getElementById('regParticipantName').value.trim();
+  const email = document.getElementById('regParticipantEmail').value.trim().toLowerCase();
+  if (!name || !email) return alert('Preencha nome e email do participante.');
+
+  ev.registrations = ev.registrations || [];
+  if (ev.registrations.some(r => r.email === email))
+    return alert('Este participante já está inscrito.');
+  if (ev.capacity && ev.registrations.length >= ev.capacity)
+    return alert('Capacidade máxima atingida.');
+
+  ev.registrations.push({
+    id: 'reg_' + Date.now(),
+    name,
+    email,
+    checkedIn: false,
+    registeredAt: new Date().toLocaleString('pt-PT')
+  });
+  save();
+  renderDetailView(ev);
+}
 
 /* ══════════════════════════════════════════════
-   GLOBAL AGENDA
+   US08 — CHECK-IN DIGITAL
 ══════════════════════════════════════════════ */
-function renderGlobalAgenda() {
-  const all = myEvents()
-    .flatMap(ev => (ev.sessions || []).map(s => ({
-      ...s,
-      eventTitle: ev.title,
-      eventDate:  ev.date
-    })))
-    .sort((a, b) => {
-      if (a.eventDate !== b.eventDate)
-        return (a.eventDate || '').localeCompare(b.eventDate || '');
-      return a.start.localeCompare(b.start);
-    });
-
-  const el = document.getElementById('globalAgenda');
-  const em = document.getElementById('emptyAgenda');
-
-  if (!all.length) {
-    el.innerHTML = '';
-    em.classList.remove('hidden');
-    return;
-  }
-
-  em.classList.add('hidden');
-  el.innerHTML = all.map(s => `
-    <div class="session-card">
-      <div class="session-time">
-        ${s.start}<br>
-        <small style="color:var(--muted);font-size:.7rem">${s.end}</small>
-      </div>
-      <div class="session-info">
-        <div class="session-title">${s.title}</div>
-        <div class="session-speaker">
-          ${s.speaker ? '🎤 ' + speakerName(s.speaker) + ' · ' : ''}
-          <span style="color:var(--accent)">${s.eventTitle}</span>
-          ${s.eventDate ? ' · ' + s.eventDate : ''}
-        </div>
-      </div>
-    </div>
-  `).join('');
+function toggleCheckIn(id) {
+  const ev = currentEvent();
+  const participant = (ev.registrations || []).find(r => r.id === id);
+  if (!participant) return;
+  participant.checkedIn = !participant.checkedIn;
+  participant.checkedInAt = participant.checkedIn ? new Date().toLocaleString('pt-PT') : '';
+  save();
+  renderDetailView(ev);
 }
+
 
 /* ══════════════════════════════════════════════
    PROFILE
